@@ -1,0 +1,269 @@
+---
+title: "RPP SRAM API 说明"
+subtitle: "rpp_smgr.h 接口文档 · 现场演示版"
+author: "XDL 技术支持"
+date: "2026-03-17"
+lang: zh-CN
+
+format:
+  revealjs:
+    theme: [league, xdl-tech-theme.scss]
+    include-in-header:
+      text: |
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    slide-number: true
+    chalkboard: false
+    preview-links: auto
+    small-footer: "XDL RPP"
+    transition: slide
+    background-transition: fade
+    width: 1280
+    height: 720
+  pptx:
+    theme: simple
+    slide-number: true
+    footer: "XDL RPP"
+execute:
+  echo: false
+code-fold: false
+logo: pic/logo_color_horizontal.png
+reference-doc: template_xdl3.pptx
+---
+
+## 目标与适用范围
+
+- 目标：快速掌握 `rpp_smgr.h` 的生命周期、分配、搬运与 Reformat 接口
+- 适用：RPP managed SRAM 模式开发、教学、现场问题定位
+- 对象：已经了解基础 RPP runtime 与 kernel 启动方式的开发者
+
+
+
+## RPP SRAM API 概览
+
+- 头文件：`rpp_smgr.h`
+- 命名空间：`rppsmgr`
+- 核心职责：管理 Device DDR 与 SRAM 的映射、搬运、格式转换
+- 实例模式：单例（`GetInstance()`）
+
+```cpp
+rppsmgr::SRamManager& smgr = rppsmgr::SRamManager::GetInstance();
+```
+
+
+
+## 生命周期
+
+| API | 作用 | 什么时候用 |
+|---|---|---|
+| `Init(workspace_size, is_profile=false)` | 创建 manager 管理的 SRAM workspace | 程序进入 managed SRAM 模式之前 |
+| `Destroy()` | 释放 workspace，清理 manager 状态 | managed SRAM 流程结束后（程序退出前显式调用） |
+| `Clear()` | 清空分配记录，保留 manager 实例 | 同一进程跑多组 case 时复用 manager |
+| `IsInitialized()` / `GetWorkspaceSize()` | 查询状态 | 调试、断言 |
+| `IsProfile()` / `SetProfile(bool)` | 性能分析开关 | profile 模式下跳过 Dump 等 |
+
+注意：`Destroy()` 建议在 Driver 销毁前显式调用，避免静态对象析构顺序问题。
+
+
+
+## Init 与 Destroy
+
+```cpp
+Result Init(uint32_t workspace_size, bool is_profile = false);
+void Destroy();
+```
+
+- `workspace_size`：SRAM workspace 大小（字节），最大约 24MB
+- 常用：`smgr.Init(SRAM_WORKSPACE)`（`SRAM_WORKSPACE` 定义于 `rpp_block_segment.h`）
+- `Destroy()` 会释放 SRAM、清理 sramIO，应在程序收尾阶段调用
+
+
+
+## 分配：PitchAllocate / Allocate
+
+**PitchAllocate**（显式 pitch）：
+
+```cpp
+Result PitchAllocate(void* ddr_address, uint32_t height, uint32_t pitch_size,
+                     ElementSize element_size, RppFormat_e format);
+```
+
+- **适合**：pitched 2D buffer、图像/矩阵/tensor 行步长明确的场景
+
+**Allocate**（自动 pitch = (width+31)/32*32 * element_size）：
+
+```cpp
+Result Allocate(void* ddr_address, uint32_t height, uint32_t width,
+                ElementSize element_size, RppFormat_e format);
+```
+
+- **适合**：只知道逻辑 width、不想手动算 pitch 的简单场景  
+- `ElementSize`：E_SIZE_1 / E_SIZE_2 / E_SIZE_4 / E_SIZE_8
+
+
+
+## 分配：Tensor 封装
+
+```cpp
+Result AllocateTensor1D<T>(void* ddr_address, uint32_t width, rppTensor1D<T>* rpp_tensor);
+Result AllocateTensor2D<T>(void* ddr_address, uint32_t height, uint32_t width, rppTensor2D<T>* rpp_tensor);
+Result AllocateTensor3D<T>(void* ddr_address, uint32_t dim2, uint32_t dim1, uint32_t dim0, rppTensor3D<T>* rpp_tensor);
+```
+
+- **适合**：tensor 风格 kernel，使用 `get()` / `get_cont()` / `get_algn()` / `set_*()` 访问器  
+- 同时完成 Allocate 和 `rpp_tensor` 初始化，`rpp_tensor` 指向 SRAM  
+- **参考**：`ut_tensor/ut_tensor.cu`
+
+
+
+## 释放与查询
+
+**释放**：`Free(ddr_address)` / `FreeTensor(tensor)`
+
+**查询**：
+
+```cpp
+void* GetSRamAddr(void* ddr_address);     // 从 DDR 主对象过渡到 kernel 实际访问地址的关键接口
+Result GetSRamFormat(void* ddr_address, RppFormat_e& format);
+```
+
+- `GetSRamAddr`：managed 方式下 kernel 使用 SRAM 的入口  
+- `GetSRamFormat`：**适合** 调试 layout 切换、format-aware pipeline
+
+
+
+## 数据搬运：Download / Upload
+
+**DDR → SRAM**：`Download` / `Download2d` / `DownloadTensor`  
+**SRAM → DDR**：`Upload` / `Upload2d` / `UploadTensor`
+
+- `Download/Upload`：managed 方式下的 D2S/S2D，内部调用 `rppMemcpyDtoSAsync` / `rppMemcpyStoDAsync`
+- `Download2d/Upload2d`：**适合** device pitch 与 SRAM pitch 不同的 2D 拷贝
+- `DownloadTensor/UploadTensor`：**适合** tensor 路径，会按 format 自动触发 Reformat
+
+
+
+## Reformat 是什么？
+
+**问题**：RPP 上不同算子对数据的“排布方式”要求不同（如行优先 vs 列优先、实虚交错 vs 实虚分离）。
+
+**Reformat**：在不改变数据含义的前提下，重新排列数据在内存中的布局。
+
+**格式对**：HFMT↔RFMT、HCFMT↔RCFMT（常见于 FFT 等场景）
+
+
+
+## HFMT / RFMT、HCFMT / RCFMT 说明
+
+可按“主机友好布局 vs RPP 计算友好布局”来理解：
+
+- `HFMT`：Host-friendly format，通常对应主机侧更直观的连续布局
+- `RFMT`：RPP-friendly format，通常对应算子在 RPP 侧更高效访问的布局
+- `HCFMT`：Host-friendly complex format（复数数据）
+- `RCFMT`：RPP-friendly complex format（复数数据）
+
+在工程中常见两类转换：
+
+1. Host/DDR 侧以 `HFMT`（或 `HCFMT`）组织数据，进入算子前转为 `RFMT`（或 `RCFMT`）
+2. 算子输出后再转回 `HFMT`（或 `HCFMT`），便于后续主机处理/校验/落盘
+
+实操建议：
+
+- 优先使用 `DownloadTensor` / `UploadTensor`，让 manager 按 format 元信息自动触发 Reformat
+- 手工 Reformat 时，务必配合 `GetSRamFormat(...)` 做格式确认，避免在错误格式上继续计算
+
+
+
+## Reformat 接口对比（按“在哪一层转换”）
+
+| 在哪里转 | 接口 | 一句话 |
+|---|---|---|
+| **SRAM 内，同一个 buffer** | `ReformatInPlace` | 原地转，省空间，width 须小于 4096 |
+| **SRAM 内，src → dst 两个 buffer** | `ReformatTo` | 从 A 的 SRAM 转到 B 的 SRAM |
+| **SRAM 装不下，走 CPU** | `ReformatOutPlace` | 经 CPU/DDR 中转，width 过大时自动用 |
+| **已经 Upload 到 DDR 了** | `ReformatDDR` | 在 DDR 上转，供后续 host 或下一阶段用 |
+
+
+
+## Reformat 选择建议
+
+大多数情况：使用 `DownloadTensor` / `UploadTensor`，manager 会按 format 自动触发 Reformat，无需手工调用。
+
+需要手动调用时：
+
+1. 算子需要另一种 SRAM 格式 -> `ReformatInPlace`（shape 小）或 `ReformatOutPlace`（shape 大）
+2. 源和目标是不同 buffer → `ReformatTo`
+3. 已 Upload，但 DDR 上仍需目标格式 -> `ReformatDDR`
+
+
+
+## Reserved 空间管理
+
+| API | 说明 | 适合场景 |
+|---|---|---|
+| `ReserveAllocate(size, p_base)` | 从 workspace 末端预留空间 | 算法需要 scratch SRAM，不想单独建映射 |
+| `FetchReservedSpace(p_base)` | 取出预留空间（有 DDR 绑定则先 Upload） | 当前阶段使用 reserved 区域 |
+| `ReleaseReservedSpace()` | 释放预留（有 DDR 绑定则先 Download） | 阶段结束 |
+| `ReserveFree()` | 取消预留，归还未使用区 | 不再需要 reserved 时 |
+
+**典型用途**：reduction、树形归约 buffer、多阶段算法的 scratch space  
+**参考**：`vec_reduce_max/vec_reduce_max.cu`、`vec_topk/vec_topk.cu`
+
+
+
+## 其他接口
+
+| API | 说明 |
+|---|---|
+| `Dump(ddr_address, keep_format=false)` | Upload 到 DDR，可选在 DDR 上做 Reformat（profile 模式下跳过） |
+| `Clear()` | 清空 fragment 和绑定，workspace 重置，保留 manager 实例 |
+| `Status()` | 打印 workspace、fragment、绑定等调试信息 |
+
+
+
+## Result 枚举
+
+| 值 | 含义 |
+|---|---|
+| SUCCESS | 成功 |
+| NO_ENOUGH_SPACE | 空间不足 |
+| DRIVER_ERROR | 驱动错误 |
+| SIO_ERROR | SRAM I/O 错误 |
+| SRAM_NOT_FOUND | 未找到 DDR 对应绑定 |
+| UNKNOWN_FORMAT | 未知格式 |
+| UPLOAD_ERROR / FREE_ERROR | 上传/释放失败 |
+| SIZE_NOT_MATCH | 尺寸不匹配 |
+| TENSOR_NOT_FOUND | 未找到 tensor 绑定 |
+
+
+
+## 典型使用流程
+
+```text
+1. GetInstance()
+2. Init(SRAM_WORKSPACE)
+3. PitchAllocate / Allocate（为每个 DDR buffer 绑定 SRAM）
+4. Download（DDR → SRAM）
+5. kernel(GetSRamAddr(...))
+6. Upload（SRAM → DDR）
+7. Destroy()
+```
+
+
+
+## 使用场景选择
+
+**优先用 `rpp_smgr.h` 时**：DDR↔SRAM 映射、tensor helper、format 跟踪、reformat、代码更短更清晰
+
+**优先用 `rtMallocSram` / `rtMemcpyDeviceToSram` 手动路径时**：完全手动控制、ping-pong SRAM、带宽测试、scratch buffer 不绑定 DDR、底层 pipeline 编排
+
+
+
+## 小结
+
+- **分配**：PitchAllocate / Allocate / AllocateTensor\*  
+- **搬运**：Download / Upload（及 2d、Tensor 变体）  
+- **地址**：GetSRamAddr 供 kernel 使用  
+- **格式**：ReformatInPlace / ReformatTo / ReformatDDR  
+- **生命周期**：Init 一次，显式 Destroy；多 case 复用用 Clear  

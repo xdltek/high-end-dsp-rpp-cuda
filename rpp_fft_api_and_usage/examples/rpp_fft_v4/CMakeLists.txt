@@ -1,0 +1,24 @@
+cmake_minimum_required(VERSION 3.10)
+project(rpp_fft_v4)
+
+set(CMAKE_CXX_FLAGS "-g -fpermissive -Wall -lpthread -std=c++14 -Wno-error=deprecated-declarations -Wno-deprecated-declarations -Wno-unknown-pragmas ")
+
+set(TEST_SOURCES rpp_fft_v4.cpp)
+set(TEST_TARGET_NAME rpp_fft_v4)
+
+IF(platform STREQUAL "RPP_SIM_RT")
+	set(RPP_TOOL_PATH /usr/local/rpp_sim/)
+	set(RPP_TOOL_LIBS rpp_rt_iss urpp)
+	add_definitions(-DRPP_SIM_RT)
+ELSE()
+	set(RPP_TOOL_PATH /usr/local/rpp/)
+	set(RPP_TOOL_LIBS urpp)
+ENDIF()
+
+set(RPP_FFT_LIBS rppfft)
+
+include_directories(${RPP_TOOL_PATH}/include/)
+link_directories(${RPP_TOOL_PATH}/lib/)
+
+add_executable(${TEST_TARGET_NAME} ${TEST_SOURCES})
+target_link_libraries (${TEST_TARGET_NAME} ${RPP_TOOL_LIBS} ${RPP_FFT_LIBS})

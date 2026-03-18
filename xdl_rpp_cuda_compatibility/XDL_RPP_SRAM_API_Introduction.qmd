@@ -1,0 +1,281 @@
+---
+title: "RPP SRAM API Introduction"
+subtitle: "rpp_smgr.h Interface Guide · Demo Session Version"
+author: "XDL Technical Support"
+date: "2026-03-17"
+lang: en
+
+format:
+  revealjs:
+    theme: [league, xdl-tech-theme.scss]
+    include-in-header:
+      text: |
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    slide-number: true
+    chalkboard: false
+    preview-links: auto
+    small-footer: "XDL RPP"
+    transition: slide
+    background-transition: fade
+    width: 1280
+    height: 720
+  pptx:
+    theme: simple
+    slide-number: true
+    footer: "XDL RPP"
+execute:
+  echo: false
+code-fold: false
+logo: pic/logo_color_horizontal.png
+reference-doc: template_xdl3.pptx
+---
+
+## Scope and Goal
+
+- Goal: quickly understand lifecycle, allocation, transfer, and reformat APIs in `rpp_smgr.h`
+- Scope: RPP managed SRAM mode development, training, and on-site debugging
+- Audience: developers who already know basic RPP runtime and kernel launch flow
+
+
+
+## RPP SRAM API Overview
+
+- Header: `rpp_smgr.h`
+- Namespace: `rppsmgr`
+- Responsibility: manage mapping, transfer, and format conversion between device DDR and on-chip SRAM
+- Access pattern: singleton manager
+
+```cpp
+rppsmgr::SRamManager& smgr = rppsmgr::SRamManager::GetInstance();
+```
+
+
+
+## Lifecycle APIs
+
+| API | Purpose | Typical Usage Time |
+|---|---|---|
+| `Init(workspace_size, is_profile=false)` | Create manager-controlled SRAM workspace | Before entering managed SRAM flow |
+| `Destroy()` | Release workspace and reset manager state | After managed SRAM flow (before program exit) |
+| `Clear()` | Clear allocation records, keep manager instance alive | Reuse manager across multiple cases in one process |
+| `IsInitialized()` / `GetWorkspaceSize()` | Query status | Debug/assert checks |
+| `IsProfile()` / `SetProfile(bool)` | Profiling mode switch | Skip `Dump` in profile mode, etc. |
+
+Note: call `Destroy()` explicitly before Driver teardown to avoid static destruction order issues.
+
+
+
+## Init and Destroy
+
+```cpp
+Result Init(uint32_t workspace_size, bool is_profile = false);
+void Destroy();
+```
+
+- `workspace_size`: SRAM workspace size in bytes, upper bound around 24 MB
+- Common usage: `smgr.Init(SRAM_WORKSPACE)` (`SRAM_WORKSPACE` is defined in `rpp_block_segment.h`)
+- `Destroy()` releases SRAM and internal SRAM I/O resources in the teardown stage
+
+
+
+## Allocation: `PitchAllocate` / `Allocate`
+
+`PitchAllocate` (explicit pitch):
+
+```cpp
+Result PitchAllocate(void* ddr_address, uint32_t height, uint32_t pitch_size,
+                     ElementSize element_size, RppFormat_e format);
+```
+
+- Best for pitched 2D buffers where row stride is already known (image/matrix/tensor)
+
+`Allocate` (auto pitch = `(width+31)/32*32 * element_size`):
+
+```cpp
+Result Allocate(void* ddr_address, uint32_t height, uint32_t width,
+                ElementSize element_size, RppFormat_e format);
+```
+
+- Best for simpler cases where only logical width is known
+- `ElementSize`: `E_SIZE_1` / `E_SIZE_2` / `E_SIZE_4` / `E_SIZE_8`
+
+
+
+## Allocation: Tensor Helpers
+
+```cpp
+Result AllocateTensor1D<T>(void* ddr_address, uint32_t width, rppTensor1D<T>* rpp_tensor);
+Result AllocateTensor2D<T>(void* ddr_address, uint32_t height, uint32_t width, rppTensor2D<T>* rpp_tensor);
+Result AllocateTensor3D<T>(void* ddr_address, uint32_t dim2, uint32_t dim1, uint32_t dim0, rppTensor3D<T>* rpp_tensor);
+```
+
+- Best for tensor-style kernels using `get()` / `get_cont()` / `get_algn()` / `set_*()`
+- Completes both Allocate and tensor metadata initialization
+- `rpp_tensor` points to SRAM storage
+- Reference: `ut_tensor/ut_tensor.cu`
+
+
+
+## Free and Query
+
+Free APIs: `Free(ddr_address)` / `FreeTensor(tensor)`
+
+Query APIs:
+
+```cpp
+void* GetSRamAddr(void* ddr_address);     // kernel-facing SRAM address
+Result GetSRamFormat(void* ddr_address, RppFormat_e& format);
+```
+
+- `GetSRamAddr`: key entry for kernel access under managed SRAM mode
+- `GetSRamFormat`: useful for layout switching and format-aware pipeline debugging
+
+
+
+## Data Transfer: Download / Upload
+
+- DDR -> SRAM: `Download` / `Download2d` / `DownloadTensor`
+- SRAM -> DDR: `Upload` / `Upload2d` / `UploadTensor`
+
+- `Download/Upload`: managed D2S/S2D wrappers (internally call `rppMemcpyDtoSAsync` / `rppMemcpyStoDAsync`)
+- `Download2d/Upload2d`: for 2D copy when device pitch and SRAM pitch differ
+- `DownloadTensor/UploadTensor`: tensor path with automatic format-triggered Reformat
+
+
+
+## What Is Reformat?
+
+Problem: different operators may require different memory layouts (for example row-major vs column-major, interleaved vs split complex layout).
+
+Reformat means rearranging data layout in memory without changing the data meaning.
+
+Common format pairs: `HFMT <-> RFMT`, `HCFMT <-> RCFMT` (often used in FFT workflows).
+
+
+
+## HFMT / RFMT and HCFMT / RCFMT
+
+A practical way to read these pairs is: host-friendly layout vs RPP-compute-friendly layout.
+
+- `HFMT`: host-friendly format, usually the layout that is easier to consume on host side
+- `RFMT`: RPP-friendly format, usually the layout preferred by RPP operators for compute access
+- `HCFMT`: host-friendly complex-data format
+- `RCFMT`: RPP-friendly complex-data format
+
+Two common conversion patterns in real pipelines:
+
+1. Input is prepared as `HFMT` (or `HCFMT`) in host/DDR, then converted to `RFMT` (or `RCFMT`) before compute
+2. After compute, data is converted back to `HFMT` (or `HCFMT`) for host-side validation, post-process, or export
+
+Practical recommendations:
+
+- Prefer `DownloadTensor` / `UploadTensor` so manager triggers Reformat automatically from format metadata
+- If you manually call Reformat APIs, verify current format with `GetSRamFormat(...)` before the next compute stage
+
+
+
+## Reformat API Comparison (Where Conversion Happens)
+
+| Conversion Location | API | One-line Summary |
+|---|---|---|
+| In SRAM, same buffer | `ReformatInPlace` | In-place conversion, saves space; width must be < 4096 |
+| In SRAM, src -> dst buffers | `ReformatTo` | Convert from source SRAM buffer to destination SRAM buffer |
+| Through CPU/DDR fallback | `ReformatOutPlace` | Used when SRAM cannot hold temporary shape (large width) |
+| After upload, on DDR | `ReformatDDR` | Convert in DDR for host-side or next-stage consumption |
+
+
+
+## Reformat Selection Guide
+
+Most cases: use `DownloadTensor` / `UploadTensor`; manager automatically triggers the required Reformat by format metadata.
+
+Manual selection cases:
+
+1. Operator needs another SRAM format: `ReformatInPlace` (small shape) or `ReformatOutPlace` (large shape)
+2. Source and target are different buffers: `ReformatTo`
+3. Data already uploaded, DDR still needs specific format: `ReformatDDR`
+
+
+
+## Reserved Space Management
+
+| API | Description | Typical Usage |
+|---|---|---|
+| `ReserveAllocate(size, p_base)` | Reserve SRAM space from workspace tail | Scratch SRAM for algorithms without new mapping objects |
+| `FetchReservedSpace(p_base)` | Fetch reserved space (Upload first if DDR-bound) | Use reserved area in current stage |
+| `ReleaseReservedSpace()` | Release reservation (Download first if DDR-bound) | End of current stage |
+| `ReserveFree()` | Cancel reservation and return unused region | Reservation no longer needed |
+
+- Typical use: reduction, tree-reduction buffers, multi-stage scratch space
+- References: `vec_reduce_max/vec_reduce_max.cu`, `vec_topk/vec_topk.cu`
+
+
+
+## Other Useful APIs
+
+| API | Description |
+|---|---|
+| `Dump(ddr_address, keep_format=false)` | Upload to DDR, optionally reformat on DDR (skipped in profile mode) |
+| `Clear()` | Reset fragments and bindings while keeping manager instance |
+| `Status()` | Print workspace/fragments/binding debug information |
+
+
+
+## Result Enum Quick Reference
+
+| Value | Meaning |
+|---|---|
+| `SUCCESS` | Success |
+| `NO_ENOUGH_SPACE` | Insufficient space |
+| `DRIVER_ERROR` | Driver error |
+| `SIO_ERROR` | SRAM I/O error |
+| `SRAM_NOT_FOUND` | No binding found for DDR address |
+| `UNKNOWN_FORMAT` | Unknown format |
+| `UPLOAD_ERROR` / `FREE_ERROR` | Upload/free failed |
+| `SIZE_NOT_MATCH` | Size mismatch |
+| `TENSOR_NOT_FOUND` | Tensor binding not found |
+
+
+
+## Typical Managed SRAM Flow
+
+```text
+1. GetInstance()
+2. Init(SRAM_WORKSPACE)
+3. PitchAllocate / Allocate (bind each DDR buffer to SRAM)
+4. Download (DDR -> SRAM)
+5. kernel(GetSRamAddr(...))
+6. Upload (SRAM -> DDR)
+7. Destroy()
+```
+
+
+
+## When to Use `rpp_smgr.h` vs Manual Path
+
+Prefer `rpp_smgr.h` when you need:
+
+- managed DDR<->SRAM mapping
+- tensor helpers
+- format tracking and automatic reformat path
+- shorter and cleaner code
+
+Prefer manual APIs (`rtMallocSram` / `rtMemcpyDeviceToSram`) when you need:
+
+- full manual control
+- complex ping-pong SRAM scheduling
+- bandwidth micro-benchmarks
+- scratch buffers not bound to DDR
+- low-level pipeline orchestration
+
+
+
+## Summary
+
+- Allocation: `PitchAllocate` / `Allocate` / `AllocateTensor*`
+- Transfer: `Download` / `Upload` (+ 2D and Tensor variants)
+- Address: `GetSRamAddr` for kernel access
+- Format: `ReformatInPlace` / `ReformatTo` / `ReformatDDR`
+- Lifecycle: usually initialize once with `Init`, explicitly call `Destroy`; use `Clear` for multi-case reuse

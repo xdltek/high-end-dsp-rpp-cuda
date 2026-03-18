@@ -1,0 +1,241 @@
+---
+title: "RPP CMakeLists Writing Guide"
+subtitle: "Differences from NVIDIA and Practical Rules"
+author: "XDL Technical Support"
+date: "2026-03-17"
+lang: en
+
+format:
+  revealjs:
+    theme: [league, xdl-tech-theme.scss]
+    include-in-header:
+      text: |
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    slide-number: true
+    chalkboard: false
+    preview-links: auto
+    small-footer: "XDL RPP"
+    transition: slide
+    background-transition: fade
+    width: 1280
+    height: 720
+  pptx:
+    theme: simple
+    slide-number: true
+    footer: "XDL RPP"
+execute:
+  echo: false
+code-fold: false
+logo: pic/logo_color_horizontal.png
+reference-doc: template_xdl3.pptx
+---
+
+## Scope and Goal
+
+- Goal: help you write a correct `CMakeLists.txt` for **RPP projects**
+- Scope: `.cu` kernel projects
+- Audience: developers familiar with basic CMake/CUDA concepts
+
+
+
+## RPP vs NVIDIA CMake Differences
+
+| Item | NVIDIA CUDA | RPP |
+|---|---|---|
+| Compiler | `nvcc` | `clang++` |
+| Architecture | `sm_xx` (for example `sm_75`) | `RPP` |
+| Runtime library | `cudart` | `urpp` |
+| Header path | CUDA Toolkit include | `/usr/local/rpp/include` |
+| Linked libraries | `cudart`, `cuda` | `urpp` |
+| CUDA flags | standard nvcc flags | `-nocudalib -nocudainc` |
+
+**Key point**: RPP uses `clang++` as the CUDA compiler entry and links RPP-specific libraries, not the default CUDA Toolkit include/lib model.
+
+
+
+## Core Rules for RPP CMakeLists
+
+1. Set `CMAKE_CUDA_COMPILER` and `CMAKE_CUDA_ARCHITECTURES` **before** `enable_language(CUDA)`
+2. Always include `-nocudalib -nocudainc`
+3. Link `urpp` (not `cudart`)
+4. Explicitly configure include/link paths:
+   - `/usr/local/rpp/include`
+   - `/usr/local/rpp/lib`
+5. For simulation mode, switch `RPP_TOOL_PATH` and `RPP_TOOL_LIBS` by `platform`
+
+
+
+## Standard Template (Part 1: Toolchain)
+
+```cmake
+cmake_minimum_required(VERSION 3.10)
+project(my_rpp_app)
+
+# 1) Force RPP toolchain (before enable_language)
+set(CMAKE_CUDA_COMPILER_FORCED TRUE)
+set(CMAKE_CUDA_COMPILER_ID_RUN 1)
+set(CMAKE_CUDA_COMPILER /usr/local/bin/clang++)
+set(CMAKE_CUDA_ARCHITECTURES RPP)
+set(_CMAKE_CUDA_WHOLE_FLAG "-c")
+enable_language(CUDA)
+set(CMAKE_CUDA_LINK_EXECUTABLE "${CMAKE_CUDA_COMPILER} ${CMAKE_CUDA_LINK_EXECUTABLE}")
+```
+
+
+
+## Standard Template (Part 2: Flags and Target)
+
+```cmake
+# 2) CUDA compile flags (must include -nocudalib -nocudainc)
+set(CMAKE_CUDA_FLAGS "-fPIC -fno-unroll-loops -O3 -ffp-contract=off -nocudalib -nocudainc -save-temps -std=c++14")
+
+# 3) RPP path and libs
+set(RPP_TOOL_PATH /usr/local/rpp/)
+set(RPP_TOOL_LIBS urpp)
+include_directories(${RPP_TOOL_PATH}/include)
+link_directories(${RPP_TOOL_PATH}/lib)
+
+# 4) Target
+add_executable(my_app my_kernel.cu)
+target_link_libraries(my_app ${RPP_TOOL_LIBS})
+```
+
+
+
+## Optional: Simulation and Multi-Platform
+
+```cmake
+if(platform STREQUAL "RPP_SIM_RT")
+    set(RPP_TOOL_PATH /usr/local/rpp_sim/)
+    set(RPP_TOOL_LIBS rpp_rt_iss urpp)
+    add_definitions(-DRPP_SIM_RT)
+else()
+    set(RPP_TOOL_PATH /usr/local/rpp/)
+    set(RPP_TOOL_LIBS urpp)
+endif()
+```
+
+Command example: `cmake -Dplatform=RPP_SIM_RT ..`
+
+
+
+## FFT Project Add-on
+
+If your project uses FFT, link `rppfft` as well:
+
+```cmake
+set(RPP_FFT_LIBS rppfft)
+target_link_libraries(my_app ${RPP_TOOL_LIBS} ${RPP_FFT_LIBS})
+```
+
+If your project is pure C++ (no `.cu`), you usually do not need `CMAKE_CUDA_*`; configure include/link and libraries only.
+
+
+
+## Key Flag Reference
+
+| Flag | Purpose |
+|---|---|
+| `-nocudalib` | Do not use CUDA Toolkit libraries |
+| `-nocudainc` | Do not use CUDA Toolkit headers |
+| `-ffp-contract=off` | Disable floating-point contraction for reproducibility |
+| `-fno-unroll-loops` | Disable auto loop unrolling for RPP codegen stability |
+| `-save-temps` | Keep intermediate files for debugging |
+
+
+
+## Typical NVIDIA Style (for Comparison)
+
+```cmake
+project(my_cuda_app LANGUAGES CXX CUDA)
+# or enable_language(CUDA)
+# usually no explicit CMAKE_CUDA_COMPILER (nvcc by default)
+set(CMAKE_CUDA_ARCHITECTURES "75")  # sm_75
+add_executable(my_app main.cu)
+target_link_libraries(my_app cudart)
+```
+
+**Comparison summary**: NVIDIA commonly uses `nvcc + cudart`; RPP uses `clang++ + urpp` and requires `-nocudalib -nocudainc`.
+
+
+
+## Recommended Authoring Flow (Checklist)
+
+1. `cmake_minimum_required` + `project`
+2. Before `enable_language(CUDA)`, set:
+   - `CMAKE_CUDA_COMPILER`
+   - `CMAKE_CUDA_ARCHITECTURES`
+   - `_CMAKE_CUDA_WHOLE_FLAG`
+3. Call `enable_language(CUDA)`
+4. Set:
+   - `CMAKE_CUDA_LINK_EXECUTABLE`
+   - `CMAKE_CUDA_FLAGS` (must include `-nocudalib -nocudainc`)
+5. Configure RPP paths and libraries:
+   - `RPP_TOOL_PATH`, `RPP_TOOL_LIBS`
+   - `include_directories`, `link_directories`
+6. `add_executable` + `target_link_libraries(... ${RPP_TOOL_LIBS})`
+
+
+
+## Common Errors and Fixes
+
+| Error | Cause | Fix |
+|---|---|---|
+| RPP header not found | include path missing | add `include_directories(${RPP_TOOL_PATH}/include)` |
+| `undefined reference` at link stage | `urpp` not linked | add `target_link_libraries(... urpp)` |
+| CUDA symbols appear unexpectedly | CUDA Toolkit path leaked in | ensure `-nocudalib -nocudainc` |
+| Wrong architecture | `sm_xx` used | change to `CMAKE_CUDA_ARCHITECTURES RPP` |
+
+
+
+## Final Takeaways
+
+- Compiler: `clang++` instead of `nvcc`
+- Architecture: `RPP` instead of `sm_xx`
+- Runtime library: `urpp` instead of `cudart`
+- Flags: always `-nocudalib -nocudainc`
+- Ordering: configure compiler/arch first, then call `enable_language(CUDA)`
+
+
+
+## Appendix: `.cu` vs `.cpp`
+
+| Extension | Use Case | Build Path |
+|---|---|---|
+| `.cu` | file contains `__global__` kernel or `__device__` function | build with RPP CUDA toolchain (`clang++`) |
+| `.cpp` | host-only C++, no device code | build with regular C++ compiler |
+
+
+
+## Appendix: Examples
+
+`hello_world.cu` (contains kernel):
+
+```cpp
+__global__ void hello_world_add(const float* A, const float* B, ...) { ... }
+hello_world_add<<<blocks, threads>>>(...);
+```
+
+Conclusion: use `.cu` and CUDA toolchain.
+
+`simpleRPPFFT_v4.cpp` (library API only):
+
+```cpp
+rppfftPlan1d(&plan, ...);
+rppfftExecC2C(plan, idata, odata, direction);  // kernel is inside library
+```
+
+Conclusion: use `.cpp`; FFT kernels are inside `rppfft`, this file only calls APIs.
+
+
+
+## Appendix: Rule Summary
+
+- If you write your own kernel (`__global__`, `<<<>>>`):
+  - use `.cu`
+  - configure `CMAKE_CUDA_*`
+- If you only call library APIs (for example `rppfft`, `rtMalloc`) and do not write kernels:
+  - use `.cpp`
+  - use regular C++ project configuration
