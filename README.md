@@ -39,6 +39,27 @@ To solve that, the content is organized in three layers:
     - `rpp_fft_perf_boost_2d`
   - Demonstrates correctness checks and performance tuning techniques.
 
+## Documentation
+
+These PDF links use repository-relative paths, so after you push to GitHub they will be clickable from the repository page. In most cases, users can open the PDF in GitHub and then download it from the preview page if needed.
+
+### XDL CUDA Programming
+
+- [XDL CUDA Programming Guide (EN)](xdl_cuda_programming/XDL_CUDA_Programming_Guide.pdf)
+- [XDL CUDA Programming Guide (CN)](xdl_cuda_programming/XDL_CUDA_Programming_Guide_CN.pdf)
+
+### RPP CUDA Compatibility
+
+- [XDL RPP CMakeLists Writing Guide (EN)](xdl_rpp_cuda_compatibility/XDL_RPP_CMakeLists_Writing_Guide.pdf)
+- [XDL RPP SRAM API Introduction (EN)](xdl_rpp_cuda_compatibility/XDL_RPP_SRAM_API_Introduction.pdf)
+- [XDL RPP CMakeLists Writing Guide (CN)](xdl_rpp_cuda_compatibility/XDL_RPP_CMakeLists_编写指南.pdf)
+- [XDL RPP SRAM API Guide (CN)](xdl_rpp_cuda_compatibility/XDL_RPP_SRAM_API_说明.pdf)
+
+### RPP FFT API And Usage
+
+- [XDL RPP FFT API Introduction (EN)](rpp_fft_api_and_usage/XDL_RPP_FFT_API_Introduction.pdf)
+- [XDL RPP FFT API Guide (CN)](rpp_fft_api_and_usage/XDL_RPP_FFT_API与使用说明.pdf)
+
 ## What You Can Learn
 
 - Build and run RPP CUDA projects with clean CMake organization.
