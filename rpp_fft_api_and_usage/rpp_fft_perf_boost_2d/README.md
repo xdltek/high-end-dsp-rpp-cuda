@@ -33,7 +33,7 @@ This module is a customer-facing 2D FFT performance demo that compares baseline 
 5. Print speedup summary (`baseline / optimized`).
 6. Destroy SRAM manager and release resources.
 
-## Workflow (ASCII Diagram)
+## Workflow Diagram
 
 ```text
 +----------------------------------+

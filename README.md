@@ -4,78 +4,147 @@
 
 `high-end-dsp-rpp-cuda` is a customer-facing learning and reference repository for building high-performance DSP applications with the RPP CUDA toolchain.
 
-It combines programming guides, API compatibility notes, and runnable examples so users can move from first program to optimized production-style kernels. Typical workloads include FFT, transpose, FIR, and other compute-intensive signal/data processing pipelines.
+It combines programming guides, compatibility notes, and runnable examples so users can move from first program to optimized production-style kernels. Typical workloads include matrix-style data movement, SRAM-managed compute, and FFT acceleration.
 
-## Introduction
+## Hardware and Runtime Context
 
-This repository is designed to answer one practical question:
-
-**How do we write, validate, and optimize RPP CUDA programs for real DSP workloads?**
-
-To solve that, the content is organized in three layers:
-
-- **Programming foundations**: memory model, data movement, stream/event flow, and SRAM usage.
-- **API understanding**: compatibility details and usage patterns for RPP runtime and libraries.
-- **Performance-oriented examples**: baseline vs optimized demos (e.g., fast mode, fixed I/O, format-aware data flow).
+- RPP in this repository refers to an accelerator card runtime, not NVIDIA CUDA runtime behavior on a standard GPU.
+- Memory terms used across the examples:
+  - Host: CPU memory allocated with APIs such as `malloc` or `rtMallocHost`
+  - Device DDR: card global memory allocated with `rtMalloc`
+  - SRAM: small fast on-card memory managed either manually (`rtMallocSram`) or through `rppsmgr::SRamManager`
+- Data movement patterns used across the demos:
+  - Host -> device DDR: `rtMemcpy(..., rtMemcpyHostToDevice)` or `rppMemcpyHtoDAsync`
+  - Device DDR -> SRAM: `rtMemcpy(..., rtMemcpyDeviceToSram)`, `rppMemcpyDtoSAsync`, or `smgr.Download`
+  - SRAM -> device DDR: `rtMemcpy(..., rtMemcpySramToDevice)`, `rppMemcpyStoDAsync`, or `smgr.Upload`
+  - Device DDR -> host: `rtMemcpy(..., rtMemcpyDeviceToHost)` or `rppMemcpyDtoHAsync`
 
 ## Repository Structure
 
 - `xdl_cuda_programming`
-  - Core CUDA programming guide for RPP devices.
-  - Includes starter and progressive demos:
-    - `rpp_first_demo`
-    - `rpp_manual_sram`
-    - `rpp_pingpong`
-    - `rpp_tile_based`
-
-- `xdl_rpp_cuda_compatibility`
-  - Compatibility and integration guidance for project setup and SRAM APIs.
-  - Includes bilingual guide materials for CMake and SRAM API usage.
+  - Programming-focused learning modules for SRAM usage, asynchronous streams, ping-pong execution, and tile-based processing.
+  - Module workflow docs:
+    - [rpp_first_demo](xdl_cuda_programming/rpp_first_demo/README.md)
+    - [rpp_manual_sram](xdl_cuda_programming/rpp_manual_sram/README.md)
+    - [rpp_pingpong](xdl_cuda_programming/rpp_pingpong/README.md)
+    - [rpp_tile_based](xdl_cuda_programming/rpp_tile_based/README.md)
 
 - `rpp_fft_api_and_usage`
-  - FFT-focused API guide and runnable examples:
-    - `rpp_fft_v4`
-    - `rpp_fft_perf_boost`
-    - `rpp_fft_perf_boost_2d`
-  - Demonstrates correctness checks and performance tuning techniques.
+  - FFT-focused demos covering correctness validation, fixed I/O, fast mode, and performance comparison.
+  - Module workflow docs:
+    - [rpp_fft_v4](rpp_fft_api_and_usage/rpp_fft_v4/README.md)
+    - [rpp_fft_perf_boost](rpp_fft_api_and_usage/rpp_fft_perf_boost/README.md)
+    - [rpp_fft_perf_boost_2d](rpp_fft_api_and_usage/rpp_fft_perf_boost_2d/README.md)
+
+- `docs`
+  - GitHub Pages entry and browser-friendly copies of the customer PDF guides.
+
+## Workflow (High Level)
+
+1. Read the PDF guides in `docs/pdfs` or through GitHub Pages for API background and customer training material.
+2. Start with `xdl_cuda_programming` to learn the basic Host -> device DDR -> SRAM -> kernel -> result flow.
+3. Move to async and pipeline-style demos (`rpp_pingpong`, `rpp_tile_based`) to understand stream/event coordination.
+4. Continue with `rpp_fft_api_and_usage` to study FFT planning, execution, verification, and performance tuning.
+5. Use the module README in each example directory as the main workflow reference before reading the source.
+
+## Workflow Diagram
+
+```text
++--------------------------------------+
+| PDF guides / GitHub Pages docs       |
+| programming + API background         |
++-------------------+------------------+
+                    |
+                    v
++--------------------------------------+
+| xdl_cuda_programming                 |
+| first demo -> manual SRAM -> async   |
+| ping-pong -> tile-based pipeline     |
++-------------------+------------------+
+                    |
+                    v
++--------------------------------------+
+| rpp_fft_api_and_usage                |
+| correctness demos -> perf demos      |
+| 1D / 2D FFT optimization patterns    |
++-------------------+------------------+
+                    |
+                    v
++--------------------------------------+
+| customer-ready understanding         |
+| build, validate, measure, explain    |
++--------------------------------------+
+```
+
+## Summary Table
+
+| Area | Main Content | Purpose |
+|---|---|---|
+| Programming foundations | `xdl_cuda_programming` | Learn memory hierarchy, SRAM usage, and async execution flow |
+| FFT API usage | `rpp_fft_api_and_usage` | Learn plan creation, execution, correctness checks, and optimization |
+| Customer documents | `docs/pdfs` and GitHub Pages | Open the official PDF guides in the browser or download them |
 
 ## Documentation
 
-These PDF links use repository-relative paths, so after you push to GitHub they will be clickable from the repository page. In most cases, users can open the PDF in GitHub and then download it from the preview page if needed.
+These links work from the repository itself. If you later enable GitHub Pages with source `main` and folder `/docs`, the same documents can also be published as a standalone site.
+
+### Repository Documentation
+
+- [Documentation Home](docs/index.md)
 
 ### XDL CUDA Programming
 
-- [XDL CUDA Programming Guide (EN)](xdl_cuda_programming/XDL_CUDA_Programming_Guide.pdf)
-- [XDL CUDA Programming Guide (CN)](xdl_cuda_programming/XDL_CUDA_Programming_Guide_CN.pdf)
+- [XDL CUDA Programming Guide (EN)](docs/pdfs/xdl-cuda-programming-guide-en.pdf)
+- [XDL CUDA Programming Guide (CN)](docs/pdfs/xdl-cuda-programming-guide-cn.pdf)
 
-### RPP CUDA Compatibility
+### RPP CUDA Compatibility PDFs
 
-- [XDL RPP CMakeLists Writing Guide (EN)](xdl_rpp_cuda_compatibility/XDL_RPP_CMakeLists_Writing_Guide.pdf)
-- [XDL RPP SRAM API Introduction (EN)](xdl_rpp_cuda_compatibility/XDL_RPP_SRAM_API_Introduction.pdf)
-- [XDL RPP CMakeLists Writing Guide (CN)](xdl_rpp_cuda_compatibility/XDL_RPP_CMakeLists_编写指南.pdf)
-- [XDL RPP SRAM API Guide (CN)](xdl_rpp_cuda_compatibility/XDL_RPP_SRAM_API_说明.pdf)
+- [XDL RPP CMakeLists Writing Guide (EN)](docs/pdfs/xdl-rpp-cmakelists-writing-guide-en.pdf)
+- [XDL RPP SRAM API Introduction (EN)](docs/pdfs/xdl-rpp-sram-api-introduction-en.pdf)
+- [XDL RPP CMakeLists Writing Guide (CN)](docs/pdfs/xdl-rpp-cmakelists-writing-guide-cn.pdf)
+- [XDL RPP SRAM API Guide (CN)](docs/pdfs/xdl-rpp-sram-api-guide-cn.pdf)
 
 ### RPP FFT API And Usage
 
-- [XDL RPP FFT API Introduction (EN)](rpp_fft_api_and_usage/XDL_RPP_FFT_API_Introduction.pdf)
-- [XDL RPP FFT API Guide (CN)](rpp_fft_api_and_usage/XDL_RPP_FFT_API与使用说明.pdf)
+- [XDL RPP FFT API Introduction (EN)](docs/pdfs/xdl-rpp-fft-api-introduction-en.pdf)
+- [XDL RPP FFT API Guide (CN)](docs/pdfs/xdl-rpp-fft-api-guide-cn.pdf)
 
-## What You Can Learn
+### Future GitHub Pages URL
 
-- Build and run RPP CUDA projects with clean CMake organization.
-- Manage Host / Device DDR / SRAM memory paths correctly.
-- Implement asynchronous pipelines with streams and events.
-- Use FFT APIs in both baseline and accelerated configurations.
-- Measure speedup and explain optimization impact to customers.
+- `https://xdltek.github.io/high-end-dsp-rpp-cuda/`
+
+## Build and Run
+
+All the examples use the same workflow from inside the module directory:
+
+```bash
+mkdir -p build
+cd build
+cmake ..
+make -j
+./<example_name>
+```
+
+Examples:
+
+- `xdl_cuda_programming/rpp_first_demo`
+- `xdl_cuda_programming/rpp_manual_sram`
+- `xdl_cuda_programming/rpp_pingpong`
+- `xdl_cuda_programming/rpp_tile_based`
+- `rpp_fft_api_and_usage/rpp_fft_v4`
+- `rpp_fft_api_and_usage/rpp_fft_perf_boost`
+- `rpp_fft_api_and_usage/rpp_fft_perf_boost_2d`
 
 ## Recommended Learning Path
 
-1. Start with `xdl_cuda_programming` basic demos.
-2. Read `xdl_rpp_cuda_compatibility` for setup and API behavior details.
-3. Move to `rpp_fft_api_and_usage` for end-to-end DSP examples and performance tuning.
+1. Start with `rpp_first_demo` to understand the minimal memory and launch flow.
+2. Read `rpp_manual_sram` to see explicit SRAM allocation and transfer control.
+3. Study `rpp_pingpong` and `rpp_tile_based` for stream/event-driven pipelines.
+4. Continue with `rpp_fft_v4` for correctness and validation flow.
+5. Finish with `rpp_fft_perf_boost` and `rpp_fft_perf_boost_2d` for customer-facing optimization comparisons.
 
 ## Target Audience
 
-- DSP algorithm engineers onboarding to RPP CUDA.
-- Application engineers building customer-facing acceleration demos.
-- Performance engineers who need reproducible optimization patterns.
+- DSP algorithm engineers onboarding to RPP CUDA
+- Application engineers building customer-facing acceleration demos
+- Performance engineers who need reproducible optimization patterns

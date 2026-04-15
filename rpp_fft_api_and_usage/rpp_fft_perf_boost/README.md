@@ -33,7 +33,7 @@ This module is a customer-facing FFT performance demo that compares two RPP 1D F
 5. Print summary and compute speedup (`baseline / optimized`).
 6. Destroy SRAM manager and release resources.
 
-## Workflow (ASCII Diagram)
+## Workflow Diagram
 
 ```text
 +----------------------------------+

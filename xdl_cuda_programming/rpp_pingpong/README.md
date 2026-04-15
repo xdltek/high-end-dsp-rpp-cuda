@@ -33,7 +33,7 @@ using two runs (cold and warm) and reports transfer plus per-stage compute timin
 8. Print transfer timeline, cold/warm stage timing, and sample values.
 9. Destroy events/streams and free SRAM/device/host memory.
 
-## Workflow (ASCII Diagram)
+## Workflow Diagram
 
 ```text
 +-----------------------------+

@@ -27,7 +27,7 @@ This module is the first RPP learning demo. It runs a simple matrix add kernel (
 8. Copy result from device DDR to host and print sample values.
 9. Destroy manager and free host/device resources.
 
-## Workflow (ASCII Diagram)
+## Workflow ASCII Diagram
 
 ```text
 +-------------------------+

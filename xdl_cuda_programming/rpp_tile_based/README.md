@@ -33,7 +33,7 @@ This module demonstrates tile-based ping-pong processing on RPP hardware. It com
 8. Synchronize streams, copy full `d_C` back to host, print timing and sample values.
 9. Destroy streams/events and free SRAM/device/host memory.
 
-## Workflow (ASCII Diagram)
+## Workflow Diagram
 
 ```text
 +-----------------------------+

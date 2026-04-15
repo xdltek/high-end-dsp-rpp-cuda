@@ -27,7 +27,7 @@ This module demonstrates a manual SRAM workflow on RPP hardware. It computes `C 
 8. Copy result from device DDR to host and print timing/output.
 9. Free SRAM buffers, device DDR buffers, and host buffers.
 
-## Workflow (ASCII Diagram)
+## Workflow Diagram
 
 ```text
 +-------------------------+

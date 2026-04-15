@@ -34,7 +34,7 @@ This module is an RPP FFT demo that runs 1D and 2D C2C FFT cases on device, comp
    - Print first 64 input/output pairs
 5. Destroy SRAM manager and release resources.
 
-## Workflow (ASCII Diagram)
+## Workflow Diagram
 
 ```text
 +------------------------------+
