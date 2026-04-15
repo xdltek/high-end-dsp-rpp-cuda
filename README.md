@@ -86,7 +86,7 @@ It combines programming guides, compatibility notes, and runnable examples so us
 
 ## Documentation
 
-These links work from the repository itself. The PDF links use `?raw=1` so GitHub opens the file content directly instead of sending users to the blob/code renderer page.
+These PDF links use `raw.githubusercontent.com` so the browser receives the PDF file directly instead of opening GitHub's preview page.
 
 ### Repository Documentation
 
@@ -94,24 +94,25 @@ These links work from the repository itself. The PDF links use `?raw=1` so GitHu
 
 ### XDL CUDA Programming
 
-- [XDL CUDA Programming Guide (EN)](docs/pdfs/xdl-cuda-programming-guide-en.pdf?raw=1)
-- [XDL CUDA Programming Guide (CN)](docs/pdfs/xdl-cuda-programming-guide-cn.pdf?raw=1)
+- [XDL CUDA Programming Guide (EN)](https://raw.githubusercontent.com/xdltek/high-end-dsp-rpp-cuda/main/docs/pdfs/xdl-cuda-programming-guide-en.pdf)
+- [XDL CUDA Programming Guide (CN)](https://raw.githubusercontent.com/xdltek/high-end-dsp-rpp-cuda/main/docs/pdfs/xdl-cuda-programming-guide-cn.pdf)
 
 ### RPP CUDA Compatibility PDFs
 
-- [XDL RPP CMakeLists Writing Guide (EN)](docs/pdfs/xdl-rpp-cmakelists-writing-guide-en.pdf?raw=1)
-- [XDL RPP SRAM API Introduction (EN)](docs/pdfs/xdl-rpp-sram-api-introduction-en.pdf?raw=1)
-- [XDL RPP CMakeLists Writing Guide (CN)](docs/pdfs/xdl-rpp-cmakelists-writing-guide-cn.pdf?raw=1)
-- [XDL RPP SRAM API Guide (CN)](docs/pdfs/xdl-rpp-sram-api-guide-cn.pdf?raw=1)
+- [XDL RPP CMakeLists Writing Guide (EN)](https://raw.githubusercontent.com/xdltek/high-end-dsp-rpp-cuda/main/docs/pdfs/xdl-rpp-cmakelists-writing-guide-en.pdf)
+- [XDL RPP SRAM API Introduction (EN)](https://raw.githubusercontent.com/xdltek/high-end-dsp-rpp-cuda/main/docs/pdfs/xdl-rpp-sram-api-introduction-en.pdf)
+- [XDL RPP CMakeLists Writing Guide (CN)](https://raw.githubusercontent.com/xdltek/high-end-dsp-rpp-cuda/main/docs/pdfs/xdl-rpp-cmakelists-writing-guide-cn.pdf)
+- [XDL RPP SRAM API Guide (CN)](https://raw.githubusercontent.com/xdltek/high-end-dsp-rpp-cuda/main/docs/pdfs/xdl-rpp-sram-api-guide-cn.pdf)
 
 ### RPP FFT API And Usage
 
-- [XDL RPP FFT API Introduction (EN)](docs/pdfs/xdl-rpp-fft-api-introduction-en.pdf?raw=1)
-- [XDL RPP FFT API Guide (CN)](docs/pdfs/xdl-rpp-fft-api-guide-cn.pdf?raw=1)
+- [XDL RPP FFT API Introduction (EN)](https://raw.githubusercontent.com/xdltek/high-end-dsp-rpp-cuda/main/docs/pdfs/xdl-rpp-fft-api-introduction-en.pdf)
+- [XDL RPP FFT API Guide (CN)](https://raw.githubusercontent.com/xdltek/high-end-dsp-rpp-cuda/main/docs/pdfs/xdl-rpp-fft-api-guide-cn.pdf)
 
 ### Future GitHub Pages URL
 
 - `https://xdltek.github.io/high-end-dsp-rpp-cuda/`
+- If you enable GitHub Pages later, that is the best option for browser viewing without depending on the `main` branch path.
 
 ## Build and Run
 
