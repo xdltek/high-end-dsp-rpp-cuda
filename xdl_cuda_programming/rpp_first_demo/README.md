@@ -1,5 +1,7 @@
 # rpp_first_demo
 
+**[Back to Home](../../README.md)**
+
 This module is the first RPP learning demo. It runs a simple matrix add kernel (`C = A + B`) while showing the full RPP data path from host memory to device DDR, then SRAM, and back.
 
 ## Hardware and Runtime Context

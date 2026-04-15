@@ -1,5 +1,7 @@
 # rpp_manual_sram
 
+**[Back to Home](../../README.md)**
+
 This module demonstrates a manual SRAM workflow on RPP hardware. It computes `C = A + B` and explicitly controls all memory movement between host memory, device DDR, and on-card SRAM.
 
 ## Hardware and Runtime Context

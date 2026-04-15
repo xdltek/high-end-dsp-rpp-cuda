@@ -1,5 +1,7 @@
 # high-end-dsp-rpp-cuda Documentation
 
+**[Back to Home](../README.md)**
+
 This site is published with GitHub Pages and provides direct browser-friendly links to the customer PDF documentation.
 
 ## What This Site Contains
@@ -37,17 +39,17 @@ This site is published with GitHub Pages and provides direct browser-friendly li
 
 ## XDL CUDA Programming
 
-- [XDL CUDA Programming Guide (EN)](./pdfs/xdl-cuda-programming-guide-en.pdf)
-- [XDL CUDA Programming Guide (CN)](./pdfs/xdl-cuda-programming-guide-cn.pdf)
+- [XDL CUDA Programming Guide (EN)](./pdfs/xdl-cuda-programming-guide-en.pdf?raw=1)
+- [XDL CUDA Programming Guide (CN)](./pdfs/xdl-cuda-programming-guide-cn.pdf?raw=1)
 
 ## RPP CUDA Compatibility PDFs
 
-- [XDL RPP CMakeLists Writing Guide (EN)](./pdfs/xdl-rpp-cmakelists-writing-guide-en.pdf)
-- [XDL RPP SRAM API Introduction (EN)](./pdfs/xdl-rpp-sram-api-introduction-en.pdf)
-- [XDL RPP CMakeLists Writing Guide (CN)](./pdfs/xdl-rpp-cmakelists-writing-guide-cn.pdf)
-- [XDL RPP SRAM API Guide (CN)](./pdfs/xdl-rpp-sram-api-guide-cn.pdf)
+- [XDL RPP CMakeLists Writing Guide (EN)](./pdfs/xdl-rpp-cmakelists-writing-guide-en.pdf?raw=1)
+- [XDL RPP SRAM API Introduction (EN)](./pdfs/xdl-rpp-sram-api-introduction-en.pdf?raw=1)
+- [XDL RPP CMakeLists Writing Guide (CN)](./pdfs/xdl-rpp-cmakelists-writing-guide-cn.pdf?raw=1)
+- [XDL RPP SRAM API Guide (CN)](./pdfs/xdl-rpp-sram-api-guide-cn.pdf?raw=1)
 
 ## RPP FFT API And Usage
 
-- [XDL RPP FFT API Introduction (EN)](./pdfs/xdl-rpp-fft-api-introduction-en.pdf)
-- [XDL RPP FFT API Guide (CN)](./pdfs/xdl-rpp-fft-api-guide-cn.pdf)
+- [XDL RPP FFT API Introduction (EN)](./pdfs/xdl-rpp-fft-api-introduction-en.pdf?raw=1)
+- [XDL RPP FFT API Guide (CN)](./pdfs/xdl-rpp-fft-api-guide-cn.pdf?raw=1)

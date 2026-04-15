@@ -1,5 +1,7 @@
 # rpp_tile_based
 
+**[Back to Home](../../README.md)**
+
 This module demonstrates tile-based ping-pong processing on RPP hardware. It computes tiled `C = A + B` by alternating two SRAM slots (`slot0`, `slot1`) and coordinating transfer and compute with asynchronous streams plus events.
 
 ## Hardware and Runtime Context

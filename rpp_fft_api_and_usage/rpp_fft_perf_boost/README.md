@@ -1,5 +1,7 @@
 # rpp_fft_perf_boost
 
+**[Back to Home](../../README.md)**
+
 This module is a customer-facing FFT performance demo that compares two RPP 1D FFT configurations and reports speedup.
 
 ## Hardware and Runtime Context

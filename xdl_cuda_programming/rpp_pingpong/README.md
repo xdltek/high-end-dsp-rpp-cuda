@@ -1,5 +1,7 @@
 # rpp_pingpong
 
+**[Back to Home](../../README.md)**
+
 This module demonstrates an advanced RPP workflow with ping-pong SRAM buffers and asynchronous transfer/compute coordination. It evaluates:
 
 `C = ((A + B) * B) + B`

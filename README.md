@@ -86,7 +86,7 @@ It combines programming guides, compatibility notes, and runnable examples so us
 
 ## Documentation
 
-These links work from the repository itself. If you later enable GitHub Pages with source `main` and folder `/docs`, the same documents can also be published as a standalone site.
+These links work from the repository itself. The PDF links use `?raw=1` so GitHub opens the file content directly instead of sending users to the blob/code renderer page.
 
 ### Repository Documentation
 
@@ -94,20 +94,20 @@ These links work from the repository itself. If you later enable GitHub Pages wi
 
 ### XDL CUDA Programming
 
-- [XDL CUDA Programming Guide (EN)](docs/pdfs/xdl-cuda-programming-guide-en.pdf)
-- [XDL CUDA Programming Guide (CN)](docs/pdfs/xdl-cuda-programming-guide-cn.pdf)
+- [XDL CUDA Programming Guide (EN)](docs/pdfs/xdl-cuda-programming-guide-en.pdf?raw=1)
+- [XDL CUDA Programming Guide (CN)](docs/pdfs/xdl-cuda-programming-guide-cn.pdf?raw=1)
 
 ### RPP CUDA Compatibility PDFs
 
-- [XDL RPP CMakeLists Writing Guide (EN)](docs/pdfs/xdl-rpp-cmakelists-writing-guide-en.pdf)
-- [XDL RPP SRAM API Introduction (EN)](docs/pdfs/xdl-rpp-sram-api-introduction-en.pdf)
-- [XDL RPP CMakeLists Writing Guide (CN)](docs/pdfs/xdl-rpp-cmakelists-writing-guide-cn.pdf)
-- [XDL RPP SRAM API Guide (CN)](docs/pdfs/xdl-rpp-sram-api-guide-cn.pdf)
+- [XDL RPP CMakeLists Writing Guide (EN)](docs/pdfs/xdl-rpp-cmakelists-writing-guide-en.pdf?raw=1)
+- [XDL RPP SRAM API Introduction (EN)](docs/pdfs/xdl-rpp-sram-api-introduction-en.pdf?raw=1)
+- [XDL RPP CMakeLists Writing Guide (CN)](docs/pdfs/xdl-rpp-cmakelists-writing-guide-cn.pdf?raw=1)
+- [XDL RPP SRAM API Guide (CN)](docs/pdfs/xdl-rpp-sram-api-guide-cn.pdf?raw=1)
 
 ### RPP FFT API And Usage
 
-- [XDL RPP FFT API Introduction (EN)](docs/pdfs/xdl-rpp-fft-api-introduction-en.pdf)
-- [XDL RPP FFT API Guide (CN)](docs/pdfs/xdl-rpp-fft-api-guide-cn.pdf)
+- [XDL RPP FFT API Introduction (EN)](docs/pdfs/xdl-rpp-fft-api-introduction-en.pdf?raw=1)
+- [XDL RPP FFT API Guide (CN)](docs/pdfs/xdl-rpp-fft-api-guide-cn.pdf?raw=1)
 
 ### Future GitHub Pages URL
 

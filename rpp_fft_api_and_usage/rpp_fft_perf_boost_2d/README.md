@@ -1,5 +1,7 @@
 # rpp_fft_perf_boost_2d
 
+**[Back to Home](../../README.md)**
+
 This module is a customer-facing 2D FFT performance demo that compares baseline mode and optimized mode on the same matrix shape.
 
 ## Hardware and Runtime Context
